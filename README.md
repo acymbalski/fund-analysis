@@ -38,7 +38,7 @@ Tickers are saved in your browser — the input pre-fills on reload.
 
 ## Risk-Free Rate
 
-`RF_RATE = 0.053` (5.3%) in `src/js/calc.js:8` — update annually to the current 3-month T-bill yield.
+`RF_RATE = 0.053` (5.3%) in `docs/js/calc.js:8` — update annually to the current 3-month T-bill yield.
 
 ## Data Source
 
@@ -53,8 +53,8 @@ For faster, own-controlled data fetching (30-line Worker, free tier):
 
 1. Create a Cloudflare account
 2. Create a Worker at `proxy.funds.cymbal.ski`
-3. Deploy `src/worker/proxy.js` (template in that file)
-4. In `src/js/api.js`, change: `const PROXY = 'https://api.allorigins.win/raw?url=';`
+3. Deploy `docs/worker/proxy.js` (template in that file)
+4. In `docs/js/api.js`, change: `const PROXY = 'https://api.allorigins.win/raw?url=';`
    to: `const PROXY = 'https://proxy.funds.cymbal.ski/?url=';`
 
 ## Running Tests
@@ -69,19 +69,19 @@ Requires Node 18+. No install needed.
 
 ## Deploying
 
-GitHub Pages serves the `/src` directory automatically on push to `main`.
+GitHub Pages serves the `/docs` directory automatically on push to `main`.
 
 **First-time setup:**
-1. Settings → Pages → Source: branch `main`, folder `/src`
+1. Settings → Pages → Source: branch `main`, folder `/docs`
 2. Settings → Pages → Custom domain: `funds.cymbal.ski`
 3. DNS: add CNAME record `funds.cymbal.ski → <username>.github.io`
 
-The `src/CNAME` file is already committed.
+The `docs/CNAME` file is already committed.
 
 ## Project Structure
 
 ```
-src/
+docs/
   index.html          Single-page app
   CNAME               funds.cymbal.ski
   css/app.css         Styles (color palette from original Excel)

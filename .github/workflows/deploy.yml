@@ -18,7 +18,7 @@ jobs:
       - name: Run unit tests
         run: node --test tests/calc.test.js tests/benchmark.test.js
 
-  # GitHub Pages deploys automatically from /src on the configured branch.
+  # GitHub Pages deploys automatically from /docs on the configured branch.
   # This job just records that tests passed before deploy proceeds.
   deploy-ready:
     name: Deploy Ready
@@ -26,4 +26,4 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     steps:
-      - run: echo "Tests passed — GitHub Pages will serve /src automatically."
+      - run: echo "Tests passed — GitHub Pages will serve /docs automatically."
