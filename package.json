@@ -1,0 +1,8 @@
+{
+  "name": "funds-screener",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/calc.test.js tests/benchmark.test.js"
+  }
+}
