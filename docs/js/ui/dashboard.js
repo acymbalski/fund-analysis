@@ -110,6 +110,31 @@ const COLS = [
     render: f => renderPerf(f.perf?.['10yr']),
   },
   {
+    label: 'Since Inc',
+    key: 'perf_since',
+    getValue: f => f.perf?.['since'] ?? -Infinity,
+    render: f => renderPerf(f.perf?.['since']),
+  },
+  {
+    label: 'Analyst',
+    key: 'msAnalyst',
+    getValue: f => f.msAnalyst ?? '—',
+    render: f => {
+      const v = f.msAnalyst ?? '—';
+      const ANALYST_COLORS = { Gold: '#8B6914', Silver: '#606060', Bronze: '#7B3F00' };
+      const color = ANALYST_COLORS[v];
+      return color
+        ? { text: v, cls: 'center bold', style: `color:${color}` }
+        : { text: v, cls: 'muted center' };
+    },
+  },
+  {
+    label: 'Cat Rank',
+    key: 'catRank',
+    getValue: () => '',
+    render: () => ({ text: '—', cls: 'muted center' }),
+  },
+  {
     label: '⭐',
     key: 'msStars',
     getValue: f => f.msStars ?? 0,
@@ -284,6 +309,48 @@ export function renderDashboard(fundData) {
     pane.appendChild(empty);
     return;
   }
+
+  // Summary stats bar
+  const summary = document.createElement('div');
+  summary.className = 'dashboard-summary';
+
+  function avg(arr) {
+    const vals = arr.filter(v => v != null && isFinite(v));
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  }
+
+  const avgExp    = avg(fundData.map(f => f.expRatio));
+  const avgPrice  = avg(fundData.map(f => f.price));
+  const avg1yr    = avg(fundData.map(f => f.perf?.['1yr']));
+  const avgSharpe = avg(fundData.map(f => f.greeks?.sharpe));
+  const avgSort   = avg(fundData.map(f => f.greeks?.sortino));
+  const avgMdd    = avg(fundData.map(f => f.greeks?.mdd));
+
+  const stats = [
+    { label: 'Funds Tracked',   value: String(fundData.length) },
+    { label: 'Avg Exp Ratio',   value: avgExp    != null ? fmtPct3(avgExp)                                          : '—' },
+    { label: 'Avg Prev Close',  value: avgPrice  != null ? `$${avgPrice.toFixed(2)}`                               : '—' },
+    { label: 'Avg 1-Yr Return', value: avg1yr    != null ? (avg1yr >= 0 ? '+' : '') + (avg1yr * 100).toFixed(1) + '%' : '—' },
+    { label: 'Avg Sharpe',      value: avgSharpe != null ? avgSharpe.toFixed(2)                                    : '—' },
+    { label: 'Avg Sortino',     value: avgSort   != null ? avgSort.toFixed(2)                                      : '—' },
+    { label: 'Avg Max Drawdown',value: avgMdd    != null ? `-${(Math.abs(avgMdd) * 100).toFixed(1)}%`              : '—' },
+  ];
+
+  for (const { label, value } of stats) {
+    const card = document.createElement('div');
+    card.className = 'summary-stat';
+    const lbl = document.createElement('span');
+    lbl.className = 'summary-stat-label';
+    lbl.textContent = label;
+    const val = document.createElement('span');
+    val.className = 'summary-stat-value';
+    val.textContent = value;
+    card.appendChild(lbl);
+    card.appendChild(val);
+    summary.appendChild(card);
+  }
+
+  pane.appendChild(summary);
 
   // Sort state
   let sortCol = null;   // index into COLS

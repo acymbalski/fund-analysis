@@ -76,22 +76,29 @@ async function runAnalysis() {
   setProgress(0, `Fetching ${tickers.length} ticker(s)…`);
   progressWrap.classList.remove('hidden');
 
-  const benchCache = new Map();    // benchTicker → { timestamps, prices }
-  const fundData   = [];
+  const benchCache = new Map();    // benchTicker → Promise<{ timestamps, prices }>
+  let completed = 0;
 
-  for (let i = 0; i < tickers.length; i++) {
-    const ticker = tickers[i];
-    setProgress((i / tickers.length) * 100, `[${i + 1}/${tickers.length}] ${ticker}…`);
-    try {
-      const fd = await fetchOneFund(ticker, benchCache);
-      fundData.push(fd);
-      addStatus(`✓ ${ticker} — ${fd.name}`, 'ok');
-    } catch (err) {
-      console.error(ticker, err);
-      addStatus(`✗ ${ticker} — ${err.message}`, 'err');
-      fundData.push(errorFund(ticker));
-    }
-  }
+  setProgress(0, `Fetching ${tickers.length} ticker(s)…`);
+
+  const results = await Promise.allSettled(
+    tickers.map(ticker =>
+      fetchOneFund(ticker, benchCache).then(fd => {
+        completed++;
+        setProgress((completed / tickers.length) * 100, `[${completed}/${tickers.length}] ${ticker} ✓`);
+        addStatus(`✓ ${ticker} — ${fd.name}`, 'ok');
+        return fd;
+      }).catch(err => {
+        completed++;
+        setProgress((completed / tickers.length) * 100, `[${completed}/${tickers.length}] ${ticker} ✗`);
+        console.error(ticker, err);
+        addStatus(`✗ ${ticker} — ${err.message}`, 'err');
+        return errorFund(ticker);
+      })
+    )
+  );
+
+  const fundData = results.map(r => r.value);
 
   setProgress(100, 'Rendering…');
   currentFundData = fundData;
@@ -133,20 +140,15 @@ async function fetchOneFund(ticker, benchCache) {
   // Determine benchmark
   const [benchTicker, benchName] = getBenchmark(ticker, summary);
 
-  // Fetch benchmark history (2y for Greeks; cached per bench ticker)
+  // Fetch benchmark history (2y for Greeks; promise-cached to avoid duplicate parallel fetches)
   if (!benchCache.has(benchTicker)) {
-    try {
-      benchCache.set(benchTicker, await fetchChart(benchTicker, '2y'));
-    } catch {
-      // Fallback to S&P 500 if bench fetch fails
-      try {
-        benchCache.set(benchTicker, await fetchChart('^GSPC', '2y'));
-      } catch {
-        benchCache.set(benchTicker, null);
-      }
-    }
+    benchCache.set(benchTicker,
+      fetchChart(benchTicker, '2y').catch(() =>
+        fetchChart('^GSPC', '2y').catch(() => null)
+      )
+    );
   }
-  const benchChart = benchCache.get(benchTicker);
+  const benchChart = await benchCache.get(benchTicker);
 
   // Performance uses full history
   const perf = computePerformance(chart);
@@ -174,6 +176,7 @@ async function fetchOneFund(ticker, benchCache) {
     risk3yr,
     risk5yr,
     msStars:     meta.msStars,
+    msAnalyst:   meta.msAnalyst,
     holdings:    meta.holdings,
     sectors:     meta.sectors,
   };
@@ -186,7 +189,7 @@ function errorFund(ticker) {
     benchTicker: '^GSPC', benchName: 'S&P 500',
     expRatio: 0, turnover: null, aum: 0, price: null, numHoldings: null,
     perf: {}, greeks: null, risk3yr: null, risk5yr: null,
-    msStars: 0, holdings: [], sectors: [],
+    msStars: 0, msAnalyst: '—', holdings: [], sectors: [],
   };
 }
 

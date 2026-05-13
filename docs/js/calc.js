@@ -230,6 +230,8 @@ export function computePerformance(chart) {
   }
   const ytd = ytdBase && ytdBase > 0 ? last / ytdBase - 1 : null;
 
+  const since = prices[0] > 0 ? last / prices[0] - 1 : null;
+
   return {
     '1mo':  ret(21),
     '3mo':  ret(63),
@@ -238,6 +240,7 @@ export function computePerformance(chart) {
     '3yr':  ann(756,  3),
     '5yr':  ann(1260, 5),
     '10yr': ann(2520, 10),
+    'since': since,
   };
 }
 
@@ -374,6 +377,7 @@ export function parseSummary(ticker, summary) {
     name, category, manager, inception,
     expRatio, turnover, aum, price, numHoldings,
     msStars,
+    msAnalyst: '—',
     holdings,
     sectors,
   };

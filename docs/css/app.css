@@ -273,6 +273,40 @@ body {
 .empty-state p { font-size: 11pt; text-align: center; }
 .empty-state strong { color: var(--cb); }
 
+/* ── DASHBOARD SUMMARY BAR ───────────────────────────────────────────────── */
+.dashboard-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 4px 14px;
+}
+
+.summary-stat {
+  background: #fff;
+  border: 1px solid var(--cbd);
+  border-radius: var(--radius);
+  padding: 6px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 100px;
+}
+
+.summary-stat-label {
+  font-size: 7pt;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--cgm);
+  white-space: nowrap;
+}
+
+.summary-stat-value {
+  font-size: 13pt;
+  font-weight: 700;
+  color: var(--ct);
+  margin-top: 2px;
+}
+
 /* ── DATA TABLES ─────────────────────────────────────────────────────────── */
 .data-table-wrap {
   overflow-x: auto;
