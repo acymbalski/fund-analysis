@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import {
   linregress, alignReturns, computePerformance,
   computeGreeks, riskScoreLabel, overlapMatrix, greeksFromAligned,
-} from '../src/js/calc.js';
+} from '../docs/js/calc.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

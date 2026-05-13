@@ -5,7 +5,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { getBenchmark } from '../src/js/benchmark.js';
+import { getBenchmark } from '../docs/js/benchmark.js';
 
 function makeSummary(categoryName, extras = {}) {
   return {
