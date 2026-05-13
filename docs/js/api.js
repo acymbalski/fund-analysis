@@ -1,5 +1,5 @@
 /**
- * api.js — Yahoo Finance data fetching via allorigins.win CORS proxy.
+ * api.js — Yahoo Finance data fetching via self-hosted CF Worker CORS proxy.
  *
  * Two endpoints per ticker:
  *   fetchChart(ticker, range)   → { timestamps: Date[], prices: number[] }

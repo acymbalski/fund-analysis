@@ -210,7 +210,7 @@ export function computePerformance(chart) {
 
   function ret(days) {
     if (n <= days) return null;
-    const base = prices[n - 1 - days];
+    const base = prices[n - days];
     return base > 0 ? last / base - 1 : null;
   }
 
@@ -323,8 +323,8 @@ export function parseSummary(ticker, summary) {
   const aum      = (ks.totalAssets?.raw ?? 0) / 1e9;  // in billions
   const price    = pr.regularMarketPrice?.raw ?? null;
 
-  // Turnover from fundProfile
-  const turnover = fp.annualHoldingsTurnover?.raw ?? null;
+  // Turnover is in defaultKeyStatistics, not fundProfile
+  const turnover = ks.annualHoldingsTurnover?.raw ?? null;
 
   // Number of holdings
   const numHoldings = th.holdingsCount ?? null;
