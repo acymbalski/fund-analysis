@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fund & ETF Screener</title>
+  <link rel="stylesheet" href="css/app.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@0.0.5/dist/xlsx.min.js"></script>
+</head>
+<body>
+
+<!-- ── HEADER ─────────────────────────────────────────────────────────────── -->
+<header class="app-header">
+  <div class="header-title">
+    <span class="header-icon">📊</span>
+    <h1>Fund &amp; ETF Screener</h1>
+    <span class="header-sub">Live analysis · funds.cymbal.ski</span>
+  </div>
+</header>
+
+<!-- ── INPUT BAR ──────────────────────────────────────────────────────────── -->
+<div class="input-bar">
+  <div class="input-bar-inner">
+    <label for="ticker-input" class="input-label">TICKERS</label>
+    <input
+      id="ticker-input"
+      type="text"
+      class="ticker-input"
+      placeholder="e.g. VOO FXAIX BND FNYTX"
+      autocomplete="off"
+      autocapitalize="characters"
+      spellcheck="false"
+    />
+    <button id="btn-run" class="btn btn-primary">▶ Run Analysis</button>
+    <button id="btn-export" class="btn btn-secondary" disabled>⬇ Export XLSX</button>
+  </div>
+  <!-- Progress bar (hidden until running) -->
+  <div id="progress-wrap" class="progress-wrap hidden">
+    <div class="progress-track">
+      <div id="progress-bar" class="progress-bar"></div>
+    </div>
+    <span id="progress-label" class="progress-label">Fetching…</span>
+  </div>
+  <!-- Error / status messages -->
+  <div id="status-messages" class="status-messages"></div>
+</div>
+
+<!-- ── TABS ───────────────────────────────────────────────────────────────── -->
+<nav class="tab-nav" id="tab-nav">
+  <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
+  <button class="tab-btn" data-tab="deepdive">🔍 Deep Dive</button>
+  <button class="tab-btn" data-tab="overlap">🗺 Overlap &amp; Sectors</button>
+  <button class="tab-btn" data-tab="performance">📈 Performance</button>
+  <button class="tab-btn" data-tab="risk">⚠ Risk Analysis</button>
+</nav>
+
+<!-- ── TAB PANES ──────────────────────────────────────────────────────────── -->
+<main class="tab-content">
+
+  <div id="pane-dashboard" class="tab-pane active">
+    <div class="empty-state">
+      <div class="empty-icon">📊</div>
+      <p>Enter tickers above and click <strong>Run Analysis</strong> to begin.</p>
+    </div>
+  </div>
+
+  <div id="pane-deepdive" class="tab-pane hidden">
+    <div class="empty-state">
+      <div class="empty-icon">🔍</div>
+      <p>Run analysis to see per-fund deep dive.</p>
+    </div>
+  </div>
+
+  <div id="pane-overlap" class="tab-pane hidden">
+    <div class="empty-state">
+      <div class="empty-icon">🗺</div>
+      <p>Run analysis to see holdings overlap and sector breakdown.</p>
+    </div>
+  </div>
+
+  <div id="pane-performance" class="tab-pane hidden">
+    <div class="empty-state">
+      <div class="empty-icon">📈</div>
+      <p>Run analysis to see performance comparison.</p>
+    </div>
+  </div>
+
+  <div id="pane-risk" class="tab-pane hidden">
+    <div class="empty-state">
+      <div class="empty-icon">⚠</div>
+      <p>Run analysis to see risk analysis.</p>
+    </div>
+  </div>
+
+</main>
+
+<!-- ── FOOTER ─────────────────────────────────────────────────────────────── -->
+<footer class="app-footer">
+  <span id="footer-status">No data loaded.</span>
+  <span class="footer-note">
+    Greeks vs each fund's own benchmark · RF rate 5.3% · Data: Yahoo Finance
+  </span>
+</footer>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
