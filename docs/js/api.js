@@ -8,7 +8,7 @@
  * Benchmark histories are cached externally by the caller (see main.js).
  */
 
-const PROXY = 'https://api.allorigins.win/raw?url=';
+const PROXY = 'https://proxy.acymbalski.workers.dev/?url=';
 const YF_BASE = 'https://query1.finance.yahoo.com';
 
 function proxyUrl(url) {
