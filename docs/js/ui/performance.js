@@ -125,10 +125,10 @@ function renderPerfTable(pane, fundData) {
 
 function renderBarChart(pane, fundData) {
   const chartWrap = el('div', 'chart-wrap');
+  chartWrap.style.height = '280px';
   chartWrap.appendChild(el('div', 'chart-title', '1-Year Return Comparison'));
   const canvas = document.createElement('canvas');
   canvas.id = 'chart-perf-bar';
-  canvas.style.height = '280px';
   chartWrap.appendChild(canvas);
   pane.appendChild(chartWrap);
 

@@ -229,10 +229,10 @@ function renderCharts(pane, fundData) {
   // ── Clustered bar: 3yr vs 5yr Sharpe ──────────────────────────────────────
   {
     const chartWrap = el('div', 'chart-wrap');
+    chartWrap.style.height = '280px';
     chartWrap.appendChild(el('div', 'chart-title', '3-Year vs 5-Year Sharpe Ratio'));
     const canvas = document.createElement('canvas');
     canvas.id = 'chart-risk-sharpe';
-    canvas.style.height = '280px';
     chartWrap.appendChild(canvas);
     pane.appendChild(chartWrap);
 
@@ -281,10 +281,10 @@ function renderCharts(pane, fundData) {
   // ── Horizontal bar: 3yr vs 5yr Std Dev ────────────────────────────────────
   {
     const chartWrap = el('div', 'chart-wrap');
+    chartWrap.style.height = '280px';
     chartWrap.appendChild(el('div', 'chart-title', '3-Year vs 5-Year Std Dev (Annualized)'));
     const canvas = document.createElement('canvas');
     canvas.id = 'chart-risk-std';
-    canvas.style.height = '280px';
     chartWrap.appendChild(canvas);
     pane.appendChild(chartWrap);
 
