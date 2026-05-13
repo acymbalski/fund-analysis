@@ -24,12 +24,13 @@ import { renderRisk }        from './ui/risk.js';
 import { exportXlsx }        from './export.js';
 
 // ── DOM refs ─────────────────────────────────────────────────────────────────
-const inputEl      = document.getElementById('ticker-input');
-const btnRun       = document.getElementById('btn-run');
-const btnExport    = document.getElementById('btn-export');
-const progressWrap = document.getElementById('progress-wrap');
-const statusEl     = document.getElementById('status-messages');
-const footerStatus = document.getElementById('footer-status');
+const inputEl        = document.getElementById('ticker-input');
+const btnRun         = document.getElementById('btn-run');
+const btnExport      = document.getElementById('btn-export');
+const progressWrap   = document.getElementById('progress-wrap');
+const statusEl       = document.getElementById('status-messages');
+const footerStatus   = document.getElementById('footer-status');
+const dataFreshness  = document.getElementById('data-freshness');
 // Progress bar elements queried lazily (HTML has them inside progress-wrap)
 const getProgressBar = () => document.getElementById('progress-bar');
 const getProgressLbl = () => document.getElementById('progress-label');
@@ -47,16 +48,57 @@ document.getElementById('tab-nav').addEventListener('click', e => {
 });
 
 // ── Persist tickers in localStorage ──────────────────────────────────────────
-const LS_KEY = 'funds_screener_tickers';
-const saved  = localStorage.getItem(LS_KEY);
+const LS_KEY       = 'funds_screener_tickers';
+const LS_CACHE_KEY = 'funds_screener_cache';
+const saved        = localStorage.getItem(LS_KEY);
 if (saved) inputEl.value = saved;
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let currentFundData = [];
 
+// ── Cache helpers ─────────────────────────────────────────────────────────────
+function formatFreshnessTs(isoStr) {
+  return new Date(isoStr).toLocaleString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+    hour: 'numeric', minute: '2-digit', hour12: true,
+  });
+}
+
+function showFreshness(isoStr) {
+  dataFreshness.textContent = `Data as of ${formatFreshnessTs(isoStr)}`;
+  dataFreshness.classList.remove('hidden');
+}
+
+function saveCache(fundData, isoStr) {
+  try {
+    localStorage.setItem(LS_CACHE_KEY, JSON.stringify({ ts: isoStr, data: fundData }));
+  } catch (_) { /* quota exceeded — skip silently */ }
+}
+
+function tryRestoreCache() {
+  try {
+    const raw = localStorage.getItem(LS_CACHE_KEY);
+    if (!raw) return;
+    const { ts, data } = JSON.parse(raw);
+    if (!Array.isArray(data) || data.length === 0) return;
+    currentFundData = data;
+    renderDashboard(data);
+    renderDeepDive(data);
+    renderOverlap(data);
+    renderPerformance(data);
+    renderRisk(data);
+    showFreshness(ts);
+    btnExport.disabled = false;
+    footerStatus.textContent =
+      `Restored from cache · ${data.length} fund(s) · Greeks vs each fund's own benchmark`;
+  } catch (_) { /* corrupt cache — ignore */ }
+}
+
 // ── Run Analysis ──────────────────────────────────────────────────────────────
 btnRun.addEventListener('click', runAnalysis);
 inputEl.addEventListener('keydown', e => { if (e.key === 'Enter') runAnalysis(); });
+
+tryRestoreCache();
 
 async function runAnalysis() {
   const raw     = inputEl.value.trim();
@@ -113,6 +155,10 @@ async function runAnalysis() {
     console.error('Render error:', err);
     addStatus(`Render error: ${err.message}`, 'err');
   }
+
+  const nowIso = new Date().toISOString();
+  saveCache(fundData, nowIso);
+  showFreshness(nowIso);
 
   const ts = new Date().toLocaleString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric',

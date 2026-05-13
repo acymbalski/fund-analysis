@@ -76,6 +76,18 @@ body {
   margin-left: 4px;
 }
 
+.data-freshness {
+  margin-left: auto;
+  font-size: 7.5pt;
+  color: var(--cgm);
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 3px;
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+.data-freshness.hidden { display: none; }
+
 /* ── INPUT BAR ───────────────────────────────────────────────────────────── */
 .input-bar {
   background: var(--cp);
