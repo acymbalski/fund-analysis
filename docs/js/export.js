@@ -12,6 +12,41 @@ const S = {
       font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 9 },
     },
   },
+  banner: {
+    s: {
+      fill: { fgColor: { rgb: '1A3366' } },
+      font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 13 },
+    },
+  },
+  sectionLabel: {
+    s: {
+      fill: { fgColor: { rgb: '37474F' } },
+      font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 8 },
+    },
+  },
+  identLabel: {
+    s: {
+      fill: { fgColor: { rgb: 'ECEFF1' } },
+      font: { color: { rgb: '757575' }, sz: 8 },
+    },
+  },
+  identValue: {
+    s: {
+      font: { bold: true, color: { rgb: '212121' }, sz: 9 },
+    },
+  },
+  summaryLabel: {
+    s: {
+      fill: { fgColor: { rgb: 'E3F2FD' } },
+      font: { color: { rgb: '1565C0' }, sz: 8 },
+    },
+  },
+  summaryValue: {
+    s: {
+      fill: { fgColor: { rgb: 'E3F2FD' } },
+      font: { bold: true, color: { rgb: '0D47A1' }, sz: 10 },
+    },
+  },
   ticker: {
     s: {
       fill: { fgColor: { rgb: 'FFF9C4' } },
@@ -107,16 +142,40 @@ const SKIP_SYMS = new Set(['', '—', 'GOLD BULLION']);
 function buildDashboard(fundData) {
   const XLSX = window.XLSX;
 
+  // Summary stats bar (mirrors the dashboard-summary div)
+  function avg(arr) {
+    const vals = arr.filter(v => v != null && isFinite(v));
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  }
+  const avgExp    = avg(fundData.map(f => f.expRatio));
+  const avgPrice  = avg(fundData.map(f => f.price));
+  const avg1yr    = avg(fundData.map(f => f.perf?.['1yr']));
+  const avgSharpe = avg(fundData.map(f => f.greeks?.sharpe));
+  const avgSort   = avg(fundData.map(f => f.greeks?.sortino));
+  const avgMdd    = avg(fundData.map(f => f.greeks?.mdd));
+
+  const summaryLabels = ['Funds Tracked', 'Avg Exp Ratio', 'Avg Prev Close', 'Avg 1-Yr Return', 'Avg Sharpe', 'Avg Sortino', 'Avg Max Drawdown'];
+  const summaryValues = [
+    String(fundData.length),
+    avgExp    != null ? (avgExp * 100).toFixed(3) + '%'                            : '—',
+    avgPrice  != null ? '$' + avgPrice.toFixed(2)                                  : '—',
+    avg1yr    != null ? (avg1yr >= 0 ? '+' : '') + (avg1yr * 100).toFixed(1) + '%' : '—',
+    avgSharpe != null ? avgSharpe.toFixed(2)                                        : '—',
+    avgSort   != null ? avgSort.toFixed(2)                                          : '—',
+    avgMdd    != null ? '-' + (Math.abs(avgMdd) * 100).toFixed(1) + '%'            : '—',
+  ];
+
   const headers = [
     'Ticker', 'Name', 'Category', 'Manager', 'Benchmark',
     'Exp Ratio', 'Turnover', 'AUM ($B)', 'Price ($)',
     '1mo', '3mo', 'YTD', '1yr', '3yr', '5yr', '10yr', 'Since Inc',
-    'Analyst', 'Cat Rank', 'MS Stars', '# Holdings',
+    'Analyst', 'Cat Rank', '⭐', '# Hldgs',
     'Alpha', 'Beta', 'R²', 'Std Dev', 'Sharpe', 'Sortino', 'Max DD',
     'Up Cap', 'Dn Cap', 'Calmar',
   ];
 
-  const rows = [headers];
+  // rows: summary label, summary value, blank, then header + data
+  const rows = [summaryLabels, summaryValues, [], headers];
   for (const f of fundData) {
     const g = f.greeks;
     rows.push([
@@ -126,9 +185,9 @@ function buildDashboard(fundData) {
       f.manager,
       f.benchName ?? f.benchTicker,
       f.expRatio ?? 0,
-      f.turnover ?? '—',
+      f.turnover != null ? (f.turnover * 100).toFixed(1) + '%' : '—',
       f.aum ?? 0,
-      f.price ?? '—',
+      f.price != null ? '$' + f.price.toFixed(2) : '—',
       fmtPerfVal(f.perf?.['1mo']),
       fmtPerfVal(f.perf?.['3mo']),
       fmtPerfVal(f.perf?.['ytd']),
@@ -136,11 +195,11 @@ function buildDashboard(fundData) {
       fmtPerfVal(f.perf?.['3yr']),
       fmtPerfVal(f.perf?.['5yr']),
       fmtPerfVal(f.perf?.['10yr']),
-      fmtPerfVal(f.perf?.['since']),
+      fmtPerfVal(f.perf?.['since'] ?? f.perf?.['sinceInc']),
       f.msAnalyst ?? '—',
       '—',
-      f.msStars ?? 0,
-      f.numHoldings ?? '—',
+      f.msStars ? ['', '★☆☆☆☆', '★★☆☆☆', '★★★☆☆', '★★★★☆', '★★★★★'][f.msStars] ?? '—' : '—',
+      f.numHoldings != null ? String(f.numHoldings) : '—',
       g ? (g.alpha >= 0 ? '+' : '') + g.alpha.toFixed(2) : '—',
       g ? g.beta.toFixed(2) : '—',
       g ? g.r2.toFixed(1) : '—',
@@ -166,21 +225,28 @@ function buildDashboard(fundData) {
     { wch: 8 }, { wch: 8 }, { wch: 7 },
   ];
 
-  styleHeaderRow(ws, 0, headers.length);
+  // Summary rows (0 = labels, 1 = values)
+  for (let c = 0; c < summaryLabels.length; c++) {
+    styleCell(ws, XLSX.utils.encode_cell({ r: 0, c }), S.summaryLabel);
+    styleCell(ws, XLSX.utils.encode_cell({ r: 1, c }), S.summaryValue);
+  }
 
-  // Style data rows
-  const PERF_COLS = [9, 10, 11, 12, 13, 14, 15, 16]; // 0-based col indices for perf
+  // Header row is row 3 (0-indexed)
+  styleHeaderRow(ws, 3, headers.length);
+
+  // Style data rows (start at row 4)
+  const PERF_COLS = [9, 10, 11, 12, 13, 14, 15, 16];
   for (let ri = 0; ri < fundData.length; ri++) {
-    const rowIdx = ri + 1;
+    const rowIdx = ri + 4;
     const f = fundData[ri];
 
-    // Ticker
     styleCell(ws, XLSX.utils.encode_cell({ r: rowIdx, c: 0 }), S.ticker);
 
-    // Perf cells
     for (const ci of PERF_COLS) {
       const perfKey = ['1mo','3mo','ytd','1yr','3yr','5yr','10yr','since'][ci - 9];
-      const v = f.perf?.[perfKey];
+      const v = ci === 16
+        ? (f.perf?.['since'] ?? f.perf?.['sinceInc'])
+        : f.perf?.[perfKey];
       if (v != null) {
         styleCell(ws, XLSX.utils.encode_cell({ r: rowIdx, c: ci }), v >= 0 ? S.pos : S.neg);
       }
@@ -203,74 +269,167 @@ function buildDashboard(fundData) {
 }
 
 // ── Sheet 2: Deep Dive ────────────────────────────────────────────────────────
+// Layout mirrors the web page: horizontal identity grid, horizontal perf/greeks
+// tables, holdings + sectors side-by-side in cols 0–2 and 4–5.
 
 function buildDeepDive(fundData) {
   const XLSX = window.XLSX;
   const rows = [];
+  const styleCells = []; // { r, c, style }
+
+  const STARS_TEXT = ['', '★☆☆☆☆', '★★☆☆☆', '★★★☆☆', '★★★★☆', '★★★★★'];
+
+  function addRow(cells) {
+    const r = rows.length;
+    rows.push(cells);
+    return r;
+  }
+
+  function markStyle(r, c, style) {
+    styleCells.push({ r, c, style });
+  }
+
+  function markRowStyle(r, numCols, style) {
+    for (let c = 0; c < numCols; c++) markStyle(r, c, style);
+  }
 
   for (const f of fundData) {
-    // Identity block
-    rows.push([`=== ${f.ticker} — ${f.name} ===`]);
-    rows.push(['Field', 'Value']);
-    rows.push(['Ticker',     f.ticker]);
-    rows.push(['Name',       f.name]);
-    rows.push(['Category',   f.category]);
-    rows.push(['Manager',    f.manager]);
-    rows.push(['Inception',  f.inception]);
-    rows.push(['Benchmark',  `${f.benchName} (${f.benchTicker})`]);
-    rows.push(['Exp Ratio',  f.expRatio != null ? (f.expRatio * 100).toFixed(3) + '%' : '—']);
-    rows.push(['Turnover',   f.turnover != null ? (f.turnover * 100).toFixed(1) + '%' : '—']);
-    rows.push(['AUM',        f.aum ? `$${f.aum.toFixed(1)}B` : '—']);
-    rows.push(['Price',      f.price != null ? `$${f.price.toFixed(2)}` : '—']);
-    rows.push(['# Holdings', f.numHoldings ?? '—']);
-    rows.push(['MS Stars',   f.msStars ?? 0]);
-    rows.push([]);
-
-    // Performance block
-    rows.push(['Performance']);
-    rows.push(['Period', 'Return']);
-    for (const [key, label] of [['1mo','1 Month'],['3mo','3 Month'],['ytd','YTD'],
-                                  ['1yr','1 Year'],['3yr','3 Yr Ann.'],['5yr','5 Yr Ann.'],['10yr','10 Yr Ann.']]) {
-      rows.push([label, fmtPerfVal(f.perf?.[key])]);
-    }
-    rows.push([]);
-
-    // Greeks block
     const g = f.greeks;
-    rows.push(['Greeks']);
-    rows.push(['Metric', 'Value']);
-    rows.push(['Alpha',   g ? (g.alpha >= 0 ? '+' : '') + g.alpha.toFixed(2) : '—']);
-    rows.push(['Beta',    g ? g.beta.toFixed(2) : '—']);
-    rows.push(['R²',      g ? g.r2.toFixed(1) : '—']);
-    rows.push(['Std Dev', g ? (g.std * 100).toFixed(1) + '%' : '—']);
-    rows.push(['Sharpe',  g ? g.sharpe.toFixed(2) : '—']);
-    rows.push(['Sortino', g ? g.sortino.toFixed(2) : '—']);
-    rows.push(['Max DD',  g ? fmtMdd(g.mdd) : '—']);
-    rows.push(['Up Cap',  g ? (g.upcap * 100).toFixed(0) + '%' : '—']);
-    rows.push(['Dn Cap',  g ? (g.dncap * 100).toFixed(0) + '%' : '—']);
-    rows.push(['Calmar',  g ? g.calmar.toFixed(2) : '—']);
-    rows.push([]);
 
-    // Holdings block
-    rows.push(['Top Holdings']);
-    rows.push(['Symbol', 'Weight %']);
-    for (const [sym, pct] of (f.holdings ?? [])) {
-      rows.push([sym, pct != null ? pct.toFixed(2) + '%' : '—']);
-    }
-    rows.push([]);
+    // ── Banner ──
+    const bannerR = addRow([`${f.ticker}  ·  ${f.name}`]);
+    markStyle(bannerR, 0, S.banner);
 
-    // Sectors block
-    rows.push(['Sector Allocation']);
-    rows.push(['Sector', 'Weight %']);
-    for (const [name, pct] of (f.sectors ?? [])) {
-      rows.push([name, pct != null ? pct.toFixed(1) + '%' : '—']);
+    // ── FUND IDENTITY ──
+    const identHdrR = addRow(['FUND IDENTITY']);
+    markStyle(identHdrR, 0, S.sectionLabel);
+
+    const identLabelR = addRow([
+      'Manager', 'Category', 'Benchmark', 'Inception',
+      'Exp Ratio', 'Turnover', 'AUM', 'Prev Close', 'MS Rating', 'Analyst',
+    ]);
+    markRowStyle(identLabelR, 10, S.identLabel);
+
+    const identValueR = addRow([
+      f.manager ?? '—',
+      f.category ?? '—',
+      f.benchName ?? '—',
+      f.inception ?? '—',
+      f.expRatio != null ? (f.expRatio * 100).toFixed(3) + '%' : '—',
+      f.turnover != null ? (f.turnover * 100).toFixed(1) + '%' : 'N/A',
+      f.aum ? `$${f.aum.toFixed(1)}B` : '—',
+      f.price != null ? `$${f.price.toFixed(2)}` : '—',
+      f.msStars ? (STARS_TEXT[f.msStars] ?? '—') : '—',
+      f.msAnalyst ?? '—',
+    ]);
+    markRowStyle(identValueR, 10, S.identValue);
+
+    addRow([]);
+
+    // ── PERFORMANCE HISTORY ──
+    const perfHdrR = addRow(['PERFORMANCE HISTORY  (Total Return %)']);
+    markStyle(perfHdrR, 0, S.sectionLabel);
+
+    const perfLabelR = addRow(['1 Month', '3 Month', 'YTD', '1 Year', '3 Yr Ann.', '5 Yr Ann.', '10 Yr Ann.', 'Since Inc.']);
+    markRowStyle(perfLabelR, 8, S.header);
+
+    const perfRawVals = [
+      f.perf?.['1mo'], f.perf?.['3mo'], f.perf?.['ytd'], f.perf?.['1yr'],
+      f.perf?.['3yr'], f.perf?.['5yr'], f.perf?.['10yr'],
+      f.perf?.['since'] ?? f.perf?.['sinceInc'],
+    ];
+    const perfValueR = addRow(perfRawVals.map(v =>
+      v == null ? 'N/A' : (v >= 0 ? '+' : '') + (v * 100).toFixed(2) + '%'
+    ));
+    for (let c = 0; c < 8; c++) {
+      const v = perfRawVals[c];
+      if (v != null) markStyle(perfValueR, c, v >= 0 ? S.pos : S.neg);
     }
-    rows.push([]);
-    rows.push([]);
+
+    addRow([]);
+
+    // ── RISK & GREEKS ──
+    const greeksHdrR = addRow([`RISK & GREEKS  (vs ${f.benchName ?? f.benchTicker ?? 'Benchmark'}, trailing 252 days)`]);
+    markStyle(greeksHdrR, 0, S.sectionLabel);
+
+    const greekLabelR = addRow(['Alpha', 'Beta', 'R-Squared', 'Std Dev Ann.', 'Sharpe', 'Sortino', 'Up Capture', 'Dn Capture', 'Max Drawdown', 'Calmar']);
+    markRowStyle(greekLabelR, 10, S.header);
+
+    const greekValueR = addRow(g ? [
+      (g.alpha >= 0 ? '+' : '') + g.alpha.toFixed(2),
+      g.beta.toFixed(2),
+      g.r2.toFixed(1),
+      (g.std * 100).toFixed(1) + '%',
+      g.sharpe.toFixed(2),
+      g.sortino.toFixed(2),
+      (g.upcap * 100).toFixed(0) + '%',
+      (g.dncap * 100).toFixed(0) + '%',
+      `-${(Math.abs(g.mdd) * 100).toFixed(1)}%`,
+      g.calmar.toFixed(2),
+    ] : new Array(10).fill('—'));
+    if (g) {
+      markStyle(greekValueR, 0, g.alpha >= 0 ? S.pos : S.neg);
+      markStyle(greekValueR, 4, g.sharpe >= 1 ? S.pos : g.sharpe >= 0.5 ? S.muted : S.neg);
+      markStyle(greekValueR, 5, g.sortino >= 1 ? S.pos : g.sortino >= 0.5 ? S.muted : S.neg);
+      markStyle(greekValueR, 8, S.neg);
+    }
+
+    addRow([]);
+
+    // ── TOP 10 HOLDINGS + SECTOR BREAKDOWN side-by-side ──
+    // cols 0-2: holdings, col 3: gap, cols 4-5: sectors
+    const holdSectTitleR = addRow(['TOP 10 HOLDINGS', null, null, null, 'SECTOR BREAKDOWN']);
+    markStyle(holdSectTitleR, 0, S.sectionLabel);
+    markStyle(holdSectTitleR, 4, S.sectionLabel);
+
+    const holdSectColR = addRow(['#', 'Symbol', 'Weight %', null, 'Sector', 'Weight %']);
+    markStyle(holdSectColR, 0, S.header);
+    markStyle(holdSectColR, 1, S.header);
+    markStyle(holdSectColR, 2, S.header);
+    markStyle(holdSectColR, 4, S.header);
+    markStyle(holdSectColR, 5, S.header);
+
+    const holdings = f.holdings ?? [];
+    const sectors  = f.sectors  ?? [];
+    const maxLen = Math.max(holdings.length, sectors.length);
+    for (let i = 0; i < maxLen; i++) {
+      const h = holdings[i];
+      const s = sectors[i];
+      addRow([
+        h ? i + 1 : null,
+        h ? h[0] : null,
+        h ? Number(h[1]).toFixed(2) + '%' : null,
+        null,
+        s ? s[0] : null,
+        s ? Number(s[1]).toFixed(1) + '%' : null,
+      ]);
+    }
+
+    addRow([]);
+    addRow([]);
+    addRow([]);
   }
 
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [{ wch: 20 }, { wch: 35 }];
+
+  for (const { r, c, style } of styleCells) {
+    styleCell(ws, XLSX.utils.encode_cell({ r, c }), style);
+  }
+
+  // Col widths accommodate: identity (10 cols), perf (8), greeks (10), holdings+sectors (6)
+  ws['!cols'] = [
+    { wch: 20 }, // 0: manager / rank / 1mo / alpha
+    { wch: 15 }, // 1: category / symbol / 3mo / beta
+    { wch: 20 }, // 2: benchmark / weight% / ytd / r-squared
+    { wch: 12 }, // 3: inception / (gap) / 1yr / std dev
+    { wch: 24 }, // 4: exp ratio / sector / 3yr / sharpe
+    { wch: 12 }, // 5: turnover / sector-wt% / 5yr / sortino
+    { wch: 12 }, // 6: aum / 10yr / up capture
+    { wch: 12 }, // 7: prev close / since inc / dn capture
+    { wch: 14 }, // 8: ms rating / max drawdown
+    { wch: 12 }, // 9: analyst / calmar
+  ];
+
   return ws;
 }
 
