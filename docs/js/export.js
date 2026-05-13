@@ -110,8 +110,8 @@ function buildDashboard(fundData) {
   const headers = [
     'Ticker', 'Name', 'Category', 'Manager', 'Benchmark',
     'Exp Ratio', 'Turnover', 'AUM ($B)', 'Price ($)',
-    '1mo', '3mo', 'YTD', '1yr', '3yr', '5yr', '10yr',
-    'MS Stars', '# Holdings',
+    '1mo', '3mo', 'YTD', '1yr', '3yr', '5yr', '10yr', 'Since Inc',
+    'Analyst', 'Cat Rank', 'MS Stars', '# Holdings',
     'Alpha', 'Beta', 'R²', 'Std Dev', 'Sharpe', 'Sortino', 'Max DD',
     'Up Cap', 'Dn Cap', 'Calmar',
   ];
@@ -136,6 +136,9 @@ function buildDashboard(fundData) {
       fmtPerfVal(f.perf?.['3yr']),
       fmtPerfVal(f.perf?.['5yr']),
       fmtPerfVal(f.perf?.['10yr']),
+      fmtPerfVal(f.perf?.['since']),
+      f.msAnalyst ?? '—',
+      '—',
       f.msStars ?? 0,
       f.numHoldings ?? '—',
       g ? (g.alpha >= 0 ? '+' : '') + g.alpha.toFixed(2) : '—',
@@ -157,8 +160,8 @@ function buildDashboard(fundData) {
   ws['!cols'] = [
     { wch: 8 }, { wch: 30 }, { wch: 22 }, { wch: 18 }, { wch: 22 },
     { wch: 9 }, { wch: 9 }, { wch: 9 }, { wch: 9 },
-    { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 },
-    { wch: 8 }, { wch: 9 },
+    { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 9 },
+    { wch: 10 }, { wch: 10 }, { wch: 8 }, { wch: 9 },
     { wch: 7 }, { wch: 7 }, { wch: 7 }, { wch: 8 }, { wch: 7 }, { wch: 7 }, { wch: 8 },
     { wch: 8 }, { wch: 8 }, { wch: 7 },
   ];
@@ -166,7 +169,7 @@ function buildDashboard(fundData) {
   styleHeaderRow(ws, 0, headers.length);
 
   // Style data rows
-  const PERF_COLS = [9, 10, 11, 12, 13, 14, 15]; // 0-based col indices for perf
+  const PERF_COLS = [9, 10, 11, 12, 13, 14, 15, 16]; // 0-based col indices for perf
   for (let ri = 0; ri < fundData.length; ri++) {
     const rowIdx = ri + 1;
     const f = fundData[ri];
@@ -176,7 +179,7 @@ function buildDashboard(fundData) {
 
     // Perf cells
     for (const ci of PERF_COLS) {
-      const perfKey = ['1mo','3mo','ytd','1yr','3yr','5yr','10yr'][ci - 9];
+      const perfKey = ['1mo','3mo','ytd','1yr','3yr','5yr','10yr','since'][ci - 9];
       const v = f.perf?.[perfKey];
       if (v != null) {
         styleCell(ws, XLSX.utils.encode_cell({ r: rowIdx, c: ci }), v >= 0 ? S.pos : S.neg);
@@ -382,7 +385,7 @@ function buildPerformance(fundData) {
       fmtPerfVal(f.perf?.['3yr']),
       fmtPerfVal(f.perf?.['5yr']),
       fmtPerfVal(f.perf?.['10yr']),
-      '—',
+      fmtPerfVal(f.perf?.['since']),
     ]);
   }
 
