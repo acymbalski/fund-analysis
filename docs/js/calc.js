@@ -382,3 +382,29 @@ export function parseSummary(ticker, summary) {
     sectors,
   };
 }
+
+/**
+ * Parse normalized Morningstar summary returned by mstar-backend /fund/{ticker}/summary.
+ * The backend already extracts all fields, so this is a pass-through with defaults.
+ *
+ * @param {string} ticker
+ * @param {object} data - response from morningstar-api.js fetchSummary()
+ * @returns same shape as parseSummary()
+ */
+export function parseMorningstarSummary(ticker, data) {
+  return {
+    name:        data.name        ?? ticker,
+    category:    data.category    ?? '—',
+    manager:     data.manager     ?? '—',
+    inception:   data.inception   ?? '—',
+    expRatio:    data.expRatio    ?? 0,
+    turnover:    data.turnover    ?? null,
+    aum:         data.aum         ?? 0,
+    price:       data.price       ?? null,
+    numHoldings: data.numHoldings ?? null,
+    msStars:     data.msStars     ?? 0,
+    msAnalyst:   data.msAnalyst   ?? '—',
+    holdings:    data.holdings    ?? [],
+    sectors:     data.sectors     ?? [],
+  };
+}

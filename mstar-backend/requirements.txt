@@ -1,0 +1,8 @@
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+cachetools==5.5.0
+pydantic==2.10.3
+mstarpy
+selenium==4.27.1
+pandas==2.2.3
+requests==2.32.3

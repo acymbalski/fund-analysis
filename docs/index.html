@@ -18,7 +18,29 @@
     <span class="header-sub">Live analysis · funds.cymbal.ski</span>
   </div>
   <span id="data-freshness" class="data-freshness hidden"></span>
+  <div id="source-selector" class="source-selector" title="Data source">
+    <button id="source-yahoo"  class="source-btn active">Yahoo</button>
+    <button id="source-mstar"  class="source-btn">M★</button>
+  </div>
 </header>
+
+<!-- ── MORNINGSTAR AUTH MODAL ─────────────────────────────────────────────── -->
+<div id="mstar-auth-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-box">
+    <button id="mstar-auth-close" class="modal-close" aria-label="Close">✕</button>
+    <h2 id="modal-title" class="modal-title">Sign in to Morningstar</h2>
+    <p class="modal-sub">Credentials sent over HTTPS · not stored anywhere</p>
+    <form id="mstar-auth-form" autocomplete="off">
+      <label class="modal-label" for="mstar-email">Email</label>
+      <input id="mstar-email" type="email" class="modal-input" required autocomplete="username" />
+      <label class="modal-label" for="mstar-password">Password</label>
+      <input id="mstar-password" type="password" class="modal-input" required autocomplete="current-password" />
+      <p id="mstar-auth-error" class="modal-error"></p>
+      <button id="mstar-auth-submit" type="submit" class="btn btn-primary modal-submit">Sign In</button>
+    </form>
+    <p class="modal-note">Session lasts 8 hours · requires <a href="https://www.morningstar.com" target="_blank" rel="noopener">morningstar.com</a> account</p>
+  </div>
+</div>
 
 <!-- ── INPUT BAR ──────────────────────────────────────────────────────────── -->
 <div class="input-bar">

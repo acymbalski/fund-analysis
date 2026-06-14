@@ -1,0 +1,18 @@
+services:
+  mstar-backend:
+    build: .
+    container_name: mstar-backend
+    restart: unless-stopped
+    ports:
+      - "8765:8000"    # Host port 8765 → container 8000; put Nginx in front for HTTPS
+    environment:
+      SELENIUM_DRIVER_WAIT_TIME: "6"
+      # Chrome flags: headless + container-safe (set in Dockerfile, override here if needed)
+      # SELENIUM_CHROME_FLAGS: "--headless=new --no-sandbox --disable-dev-shm-usage --disable-gpu"
+    # No MSTAR_EMAIL / MSTAR_PASSWORD — credentials come from the frontend per-user
+    shm_size: "256m"   # Chromium needs shared memory; default 64m causes crashes
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

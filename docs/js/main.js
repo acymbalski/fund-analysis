@@ -9,11 +9,16 @@
  *   5. Render all 5 tabs
  */
 
-import { fetchChart, fetchSummary } from './api.js';
+import { fetchChart as yahooFetchChart, fetchSummary as yahooFetchSummary } from './api.js';
+import {
+  fetchChart as mstarFetchChart,
+  fetchSummary as mstarFetchSummary,
+  getMstarToken,
+} from './morningstar-api.js';
 import { getBenchmark }             from './benchmark.js';
 import {
   computePerformance, computeGreeks,
-  computeRollingGreeks, parseSummary, riskScoreLabel,
+  computeRollingGreeks, parseSummary, parseMorningstarSummary, riskScoreLabel,
 } from './calc.js';
 
 import { renderDashboard }   from './ui/dashboard.js';
@@ -22,6 +27,29 @@ import { renderOverlap }     from './ui/overlap.js';
 import { renderPerformance } from './ui/performance.js';
 import { renderRisk }        from './ui/risk.js';
 import { exportXlsx }        from './export.js';
+
+// ── Data source ───────────────────────────────────────────────────────────────
+const LS_SOURCE_KEY = 'funds_data_source';
+
+export function getDataSource() {
+  return localStorage.getItem(LS_SOURCE_KEY) ?? 'yahoo';
+}
+
+export function setDataSource(src) {
+  localStorage.setItem(LS_SOURCE_KEY, src);
+}
+
+function isMstarSource() {
+  return getDataSource() === 'morningstar';
+}
+
+function getFetchChart() {
+  return isMstarSource() ? mstarFetchChart : yahooFetchChart;
+}
+
+function getFetchSummary() {
+  return isMstarSource() ? mstarFetchSummary : yahooFetchSummary;
+}
 
 // ── DOM refs ─────────────────────────────────────────────────────────────────
 const inputEl        = document.getElementById('ticker-input');
@@ -65,7 +93,8 @@ function formatFreshnessTs(isoStr) {
 }
 
 function showFreshness(isoStr) {
-  dataFreshness.textContent = `Data as of ${formatFreshnessTs(isoStr)}`;
+  const source = isMstarSource() ? ' · Morningstar' : ' · Yahoo Finance';
+  dataFreshness.textContent = `Data as of ${formatFreshnessTs(isoStr)}${source}`;
   dataFreshness.classList.remove('hidden');
 }
 
@@ -174,23 +203,34 @@ async function runAnalysis() {
 
 // ── Fetch + compute one fund ─────────────────────────────────────────────────
 async function fetchOneFund(ticker, benchCache) {
+  const fetchChart   = getFetchChart();
+  const fetchSummary = getFetchSummary();
+  const useMstar     = isMstarSource();
+
   // Fetch chart and summary in parallel
   const [chart, summary] = await Promise.all([
     fetchChart(ticker, '10y'),
     fetchSummary(ticker),
   ]);
 
-  // Parse metadata
-  const meta = parseSummary(ticker, summary);
+  // Parse metadata — Morningstar backend returns already-normalized data
+  const meta = useMstar
+    ? parseMorningstarSummary(ticker, summary)
+    : parseSummary(ticker, summary);
 
-  // Determine benchmark
-  const [benchTicker, benchName] = getBenchmark(ticker, summary);
+  // Determine benchmark.
+  // Yahoo: pass raw summary so getBenchmark can read explicit benchmarkTicker fields.
+  // Morningstar: synthesize a minimal summary-shaped object from category string.
+  const [benchTicker, benchName] = useMstar
+    ? getBenchmark(ticker, { fundProfile: { categoryName: meta.category } })
+    : getBenchmark(ticker, summary);
 
   // Fetch benchmark history (2y for Greeks; promise-cached to avoid duplicate parallel fetches)
+  // Always use Yahoo for benchmark — benchmark tickers are equity indices, not M* funds
   if (!benchCache.has(benchTicker)) {
     benchCache.set(benchTicker,
-      fetchChart(benchTicker, '2y').catch(() =>
-        fetchChart('^GSPC', '2y').catch(() => null)
+      yahooFetchChart(benchTicker, '2y').catch(() =>
+        yahooFetchChart('^GSPC', '2y').catch(() => null)
       )
     );
   }
@@ -257,3 +297,69 @@ function addStatus(msg, type = 'ok') {
   statusEl.appendChild(el);
   statusEl.scrollTop = statusEl.scrollHeight;
 }
+
+// ── Source selector wiring ────────────────────────────────────────────────────
+(function initSourceSelector() {
+  const selector  = document.getElementById('source-selector');
+  const btnYahoo  = document.getElementById('source-yahoo');
+  const btnMstar  = document.getElementById('source-mstar');
+  const modal     = document.getElementById('mstar-auth-modal');
+  const authForm  = document.getElementById('mstar-auth-form');
+  const authEmail = document.getElementById('mstar-email');
+  const authPw    = document.getElementById('mstar-password');
+  const authErr   = document.getElementById('mstar-auth-error');
+  const authClose = document.getElementById('mstar-auth-close');
+  const authBtn   = document.getElementById('mstar-auth-submit');
+
+  if (!selector) return; // graceful no-op if HTML not yet updated
+
+  function syncButtons() {
+    const src = getDataSource();
+    btnYahoo.classList.toggle('active', src === 'yahoo');
+    btnMstar.classList.toggle('active', src === 'morningstar');
+  }
+  syncButtons();
+
+  btnYahoo.addEventListener('click', () => {
+    setDataSource('yahoo');
+    syncButtons();
+  });
+
+  btnMstar.addEventListener('click', () => {
+    if (getMstarToken()) {
+      // Already authenticated this session
+      setDataSource('morningstar');
+      syncButtons();
+    } else {
+      // Need credentials
+      authErr.textContent = '';
+      authEmail.value = '';
+      authPw.value = '';
+      modal.classList.remove('hidden');
+      authEmail.focus();
+    }
+  });
+
+  authClose.addEventListener('click', () => modal.classList.add('hidden'));
+  modal.addEventListener('click', e => { if (e.target === modal) modal.classList.add('hidden'); });
+
+  authForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    authBtn.disabled = true;
+    authBtn.textContent = 'Authenticating…';
+    authErr.textContent = '';
+    try {
+      const { authenticate } = await import('./morningstar-api.js');
+      await authenticate(authEmail.value.trim(), authPw.value);
+      setDataSource('morningstar');
+      syncButtons();
+      modal.classList.add('hidden');
+    } catch (err) {
+      authErr.textContent = err.message;
+    } finally {
+      authBtn.disabled = false;
+      authBtn.textContent = 'Sign In';
+      authPw.value = '';
+    }
+  });
+})();
